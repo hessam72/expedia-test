@@ -37,42 +37,71 @@ export const ExpediaWidgetManager: React.FC<{ children: ReactNode }> = ({ childr
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
 
   useEffect(() => {
+    // More robust script loading check
     const checkScript = () => {
       return !!(
         document.querySelector('.eg-widgets-script') ||
+        document.querySelector('#expedia-widgets') ||
         window.EG ||
-        window.egWidgets
+        window.egWidgets ||
+        document.querySelector('script[src*="eg-widgets"]')
       );
     };
 
+    // Initial check
     if (checkScript()) {
+      console.log('✅ Expedia script already loaded');
       setIsScriptLoaded(true);
       return;
     }
 
+    // Polling with timeout
     const checkInterval = setInterval(() => {
       if (checkScript()) {
+        console.log('🔍 Script detected via polling');
         setIsScriptLoaded(true);
         clearInterval(checkInterval);
       }
     }, 100);
 
-    return () => clearInterval(checkInterval);
+    // Timeout after 10 seconds
+    const timeout = setTimeout(() => {
+      clearInterval(checkInterval);
+      console.error('❌ Script load timeout');
+    }, 10000);
+
+    return () => {
+      clearInterval(checkInterval);
+      clearTimeout(timeout);
+    };
   }, []);
 
   const initializeWidget = (element: HTMLElement) => {
-    if (!isScriptLoaded || !element) return;
+    if (!isScriptLoaded || !element) {
+      console.warn('⚠️ Cannot initialize: script not loaded or element missing');
+      return;
+    }
 
-    try {
-      if (window.EG?.initializeWidget) {
-        window.EG.initializeWidget(element);
-      } else if (window.EG?.processWidgets) {
-        window.EG.processWidgets();
-      } else if (window.egWidgets?.init) {
-        window.egWidgets.init();
+    console.log('🔧 Attempting widget initialization...');
+
+    // Try multiple initialization methods
+    const initMethods = [
+      () => window.EG?.initializeWidget?.(element),
+      () => window.EG?.processWidgets?.(),
+      () => window.EG?.widgets?.init?.(),
+      () => window.egWidgets?.init?.(),
+      () => {
+        const event = new Event('DOMContentLoaded', { bubbles: true });
+        document.dispatchEvent(event);
       }
-    } catch (error) {
-      console.error('Failed to initialize Expedia widget:', error);
+    ];
+
+    for (const method of initMethods) {
+      try {
+        method();
+      } catch (error) {
+        console.warn('Method failed:', error);
+      }
     }
   };
 
