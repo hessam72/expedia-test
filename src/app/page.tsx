@@ -2,70 +2,83 @@
 'use client';
 
 import { useEffect } from 'react';
-import Script from 'next/script';
+
+declare global {
+  interface Window {
+    EGWidgets?: any;
+  }
+}
 
 export default function Home() {
   useEffect(() => {
-    const checkWidgetLoaded = () => {
-      const widgetElement = document.querySelector('.eg-widget');
-      const loadingElement = document.getElementById('widget-loading');
+    if (document.querySelector('.eg-widgets-script')) {
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://creator.expediagroup.com/products/widgets/assets/eg-widgets.js';
+    script.className = 'eg-widgets-script';
+    script.async = false;
+
+    const initializeWidget = () => {
       const statusElement = document.getElementById('load-status');
+      const loadingElement = document.getElementById('widget-loading');
+      const widgetElement = document.querySelector('.eg-widget') as HTMLElement;
 
-      if (!widgetElement || !loadingElement || !statusElement) return false;
+      if (!statusElement || !loadingElement || !widgetElement) return;
 
-      const hasContent = widgetElement && (
-        widgetElement.children.length > 0 ||
-        widgetElement.innerHTML.trim().length > 0
-      );
+      let checkCount = 0;
+      const maxChecks = 60;
 
-      if (hasContent) {
-        (loadingElement as HTMLElement).style.display = 'none';
-        (widgetElement as HTMLElement).style.display = 'block';
-        statusElement.textContent = 'Widget Status: Loaded Successfully ✅';
-        (statusElement as HTMLElement).style.color = '#22543d';
-        console.log('✅ Expedia widget loaded successfully');
-        return true;
-      }
-      return false;
+      const checkWidget = () => {
+        checkCount++;
+
+        const iframe = widgetElement.querySelector('iframe');
+        const hasContent = iframe ||
+                          widgetElement.children.length > 0 ||
+                          widgetElement.innerHTML.trim().length > 50;
+
+        if (hasContent) {
+          loadingElement.style.display = 'none';
+          widgetElement.style.display = 'block';
+          statusElement.textContent = 'Widget Status: Loaded Successfully ✅';
+          statusElement.style.color = '#22543d';
+          return true;
+        }
+
+        if (checkCount >= maxChecks) {
+          statusElement.textContent = 'Widget Status: Failed to Load ❌';
+          statusElement.style.color = '#e53e3e';
+          loadingElement.innerHTML = `
+            <div style="text-align: center; color: #e53e3e;">
+              ❌ Widget failed to initialize!<br>
+              <small>Please check your affiliate configuration</small>
+            </div>
+          `;
+          return true;
+        }
+
+        setTimeout(checkWidget, 1000);
+        return false;
+      };
+
+      setTimeout(checkWidget, 2000);
     };
 
-    const timer = setTimeout(() => {
-      if (!checkWidgetLoaded()) {
-        const interval = setInterval(() => {
-          if (checkWidgetLoaded()) {
-            clearInterval(interval);
-          }
-        }, 500);
-
-        setTimeout(() => {
-          clearInterval(interval);
-          const statusElement = document.getElementById('load-status');
-          const loadingElement = document.getElementById('widget-loading');
-
-          if (statusElement && loadingElement && (document.querySelector('.eg-widget') as HTMLElement)?.style.display === 'none') {
-            statusElement.textContent = 'Widget Status: Failed to Load ❌';
-            (statusElement as HTMLElement).style.color = '#e53e3e';
-            loadingElement.innerHTML = `
-              <div style="text-align: center; color: #e53e3e;">
-                ❌ Widget failed to load<br>
-                <small>This might be due to network restrictions or widget configuration issues</small>
-              </div>
-            `;
-          }
-        }, 90000);
+    script.onload = initializeWidget;
+    script.onerror = () => {
+      const statusElement = document.getElementById('load-status');
+      if (statusElement) {
+        statusElement.textContent = 'Widget Status: Script Failed to Load ❌';
+        (statusElement as HTMLElement).style.color = '#e53e3e';
       }
-    }, 5000);
+    };
 
-    return () => clearTimeout(timer);
+    document.head.appendChild(script);
   }, []);
 
   return (
     <>
-      <Script
-        src="https://creator.expediagroup.com/products/widgets/assets/eg-widgets.js"
-        className="eg-widgets-script"
-        strategy="afterInteractive"
-      />
 
       <div className="min-h-screen" style={{
         fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
@@ -179,6 +192,8 @@ export default function Home() {
                   boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
                   background: 'white',
                   minHeight: '400px',
+                  width: '100%',
+                  maxWidth: '575px',
                   display: 'none',
                   alignItems: 'center',
                   justifyContent: 'center'
