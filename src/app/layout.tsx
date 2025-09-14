@@ -2,7 +2,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
-import { ExpediaWidgetManager } from "@/contexts/ExpediaWidgetManager";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,10 +25,13 @@ export default function RootLayout({
       <head>
         <Script
           id="expedia-widgets"
-          src="https://creator.expediagroup.com/products/widgets/assets/eg-widgets.js"
+          src="https://affiliates.expediagroup.com/products/widgets/assets/eg-widgets.js"
           strategy="afterInteractive"
           onLoad={() => {
             console.log('✅ Expedia script loaded');
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('expediaScriptLoaded'));
+            }
           }}
           onError={(e) => {
             console.error('❌ Expedia script failed to load:', e);
@@ -39,7 +41,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ExpediaWidgetManager>{children}</ExpediaWidgetManager>
+{children}
       </body>
     </html>
   );
