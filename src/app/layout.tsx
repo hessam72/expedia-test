@@ -25,8 +25,9 @@ export default function RootLayout({
       <head>
         <Script
           id="expedia-widgets"
-          src="https://affiliates.expediagroup.com/products/widgets/assets/eg-widgets.js"
-          strategy="afterInteractive"
+          className="eg-widgets-script"
+          src="https://creator.expediagroup.com/products/widgets/assets/eg-widgets.js"
+          strategy="beforeInteractive"
           onLoad={() => {
             console.log('✅ Expedia script loaded');
             if (typeof window !== 'undefined') {

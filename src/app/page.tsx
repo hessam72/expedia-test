@@ -11,15 +11,6 @@ declare global {
 
 export default function Home() {
   useEffect(() => {
-    if (document.querySelector('.eg-widgets-script')) {
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://creator.expediagroup.com/products/widgets/assets/eg-widgets.js';
-    script.className = 'eg-widgets-script';
-    script.async = false;
-
     const initializeWidget = () => {
       const statusElement = document.getElementById('load-status');
       const loadingElement = document.getElementById('widget-loading');
@@ -65,16 +56,16 @@ export default function Home() {
       setTimeout(checkWidget, 2000);
     };
 
-    script.onload = initializeWidget;
-    script.onerror = () => {
-      const statusElement = document.getElementById('load-status');
-      if (statusElement) {
-        statusElement.textContent = 'Widget Status: Script Failed to Load ❌';
-        (statusElement as HTMLElement).style.color = '#e53e3e';
-      }
+    const handleScriptLoad = () => {
+      initializeWidget();
     };
 
-    document.head.appendChild(script);
+    if (document.querySelector('.eg-widgets-script')) {
+      initializeWidget();
+    } else {
+      window.addEventListener('expediaScriptLoaded', handleScriptLoad);
+      return () => window.removeEventListener('expediaScriptLoaded', handleScriptLoad);
+    }
   }, []);
 
   return (
