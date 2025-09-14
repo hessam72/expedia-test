@@ -52,9 +52,9 @@ export default function Home() {
               </div>
             `;
           }
-        }, 15000);
+        }, 90000);
       }
-    }, 1000);
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, []);
